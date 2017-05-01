@@ -14,6 +14,7 @@
 
 using std::normal_distribution;
 using std::default_random_engine;
+using std::numeric_limits;
 
 default_random_engine generator;
 
@@ -43,7 +44,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
   }
 
   // Set the number of particles.
-  num_particles = 100;
+  num_particles = 500;
 
   // Add random Gaussian noise to each particle.
   for (int i=0; i < num_particles; i++) {
@@ -55,18 +56,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     p.x = x;
     p.y = y;
     p.theta = theta;
-
-    std::cout << "Before:" << std::endl;
-    std::cout << p.x << std::endl;
-    std::cout << p.y << std::endl;
-    std::cout << p.theta << std::endl;
     addGaussianNoise(p, std);
-
-    std::cout << "After:" << std::endl;
-    std::cout << p.x << std::endl;
-    std::cout << p.y << std::endl;
-    std::cout << p.theta << std::endl;
-    std::cout << std::endl;
 
     p.weight = 1.0;
 
@@ -87,15 +77,15 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
   // calculate new values
   for (int i=0; i < num_particles; i++) {
     Particle p = particles[i];
-    double td = yaw_rate * delta_t;
+    double t_new = p.theta + yaw_rate * delta_t;
     if (fabs(yaw_rate) > 0.0001) {
-      p.x += velocity / yaw_rate * (sin(p.theta + td) - sin(p.theta));
-      p.y += velocity / yaw_rate * (cos(p.theta) - cos(p.theta + td));
+      p.x += velocity / yaw_rate * (sin(p.theta + t_new) - sin(p.theta));
+      p.y += velocity / yaw_rate * (cos(p.theta) - cos(p.theta + t_new));
     } else {
       p.x += velocity * delta_t * cos(p.theta);
       p.y += velocity * delta_t * sin(p.theta);
     }
-    p.theta += td;
+    p.theta = t_new;
 
     // add random Gaussian noise
     addGaussianNoise(p, std);
@@ -103,25 +93,35 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
 }
 
 void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
-  // TODO: Find the predicted measurement that is closest to each observed measurement and assign the
-  //   observed measurement to this particular landmark.
-  // NOTE: this method will NOT be called by the grading code. But you will probably find it useful to
-  //   implement this method and use it as a helper during the updateWeights phase.
+  // Find the predicted measurement that is closest to each observed measurement and assign the
+  // observed measurement to this particular landmark.
+  // this method will NOT be called by the grading code. But you will probably find it useful to
+  // implement this method and use it as a helper during the updateWeights phase.
+  for (unsigned int i = 0; i < observations.size(); i++) {
+    LandmarkObs o = observations[i];
+    double min_dist = numeric_limits<double>::infinity();
+    std::cout << "Checkout observation id " << o.id << std::endl;
+    for (unsigned int j = 0; j < predicted.size(); j++) {
+      LandmarkObs p = predicted[j];
+      std::cout << "Comparing with landmark id " << p.id << std::endl;
+    }
+  }
+  exit(1);
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     std::vector<LandmarkObs> observations, Map map_landmarks) {
-  // TODO: Update the weights of each particle using a mult-variate Gaussian distribution. You can read
-  //   more about this distribution here: https://en.wikipedia.org/wiki/Multivariate_normal_distribution
-  // NOTE: The observations are given in the VEHICLE'S coordinate system. Your particles are located
-  //   according to the MAP'S coordinate system. You will need to transform between the two systems.
-  //   Keep in mind that this transformation requires both rotation AND translation (but no scaling).
-  //   The following is a good resource for the theory:
-  //   https://www.willamette.edu/~gorr/classes/GeneralGraphics/Transforms/transforms2d.htm
-  //   and the following is a good resource for the actual equation to implement (look at equation
-  //   3.33. Note that you'll need to switch the minus sign in that equation to a plus to account
-  //   for the fact that the map's y-axis actually points downwards.)
-  //   http://planning.cs.uiuc.edu/node99.html
+  // Update the weights of each particle using a mult-variate Gaussian distribution. You can read
+  // more about this distribution here: https://en.wikipedia.org/wiki/Multivariate_normal_distribution
+  // The observations are given in the VEHICLE'S coordinate system. Your particles are located
+  // according to the MAP'S coordinate system. You will need to transform between the two systems.
+  // Keep in mind that this transformation requires both rotation AND translation (but no scaling).
+  // The following is a good resource for the theory:
+  // https://www.willamette.edu/~gorr/classes/GeneralGraphics/Transforms/transforms2d.htm
+  // and the following is a good resource for the actual equation to implement (look at equation
+  // 3.33. Note that you'll need to switch the minus sign in that equation to a plus to account
+  // for the fact that the map's y-axis actually points downwards.)
+  // http://planning.cs.uiuc.edu/node99.html
 }
 
 void ParticleFilter::resample() {
