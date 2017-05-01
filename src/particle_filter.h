@@ -97,6 +97,7 @@ public:
    */
   void write(std::string filename);
 
+  void addGaussianNoise(Particle& p, double std[]);
   /**
    * initialized Returns whether particle filter is initialized yet or not.
    */
@@ -104,7 +105,5 @@ public:
     return is_initialized;
   }
 };
-
-
 
 #endif /* PARTICLE_FILTER_H_ */
