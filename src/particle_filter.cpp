@@ -11,12 +11,16 @@
 #include <numeric>
 
 #include "particle_filter.h"
+#include "helper_functions.h"
 
 using std::normal_distribution;
 using std::default_random_engine;
 using std::numeric_limits;
+using std::vector;
 
 default_random_engine generator;
+
+#define DEF_WEIGHT 1.0
 
 void ParticleFilter::addGaussianNoise(Particle& p, double std[]) {
 
@@ -46,6 +50,9 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
   // Set the number of particles.
   num_particles = 500;
 
+  particles.clear();
+  weights.clear();
+
   // Add random Gaussian noise to each particle.
   for (int i=0; i < num_particles; i++) {
 
@@ -58,10 +65,11 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     p.theta = theta;
     addGaussianNoise(p, std);
 
-    p.weight = 1.0;
+    p.weight = DEF_WEIGHT;
 
     // add particle to vector containing all particles
     particles.push_back(p);
+    weights.push_back(DEF_WEIGHT);
   }
 
   // Consult particle_filter.h for more information about this method (and others in this file).
@@ -98,15 +106,21 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::ve
   // this method will NOT be called by the grading code. But you will probably find it useful to
   // implement this method and use it as a helper during the updateWeights phase.
   for (unsigned int i = 0; i < observations.size(); i++) {
+
     LandmarkObs o = observations[i];
     double min_dist = numeric_limits<double>::infinity();
-    std::cout << "Checkout observation id " << o.id << std::endl;
+
     for (unsigned int j = 0; j < predicted.size(); j++) {
+
       LandmarkObs p = predicted[j];
-      std::cout << "Comparing with landmark id " << p.id << std::endl;
+      double distance = dist(o.x, o.y, p.x, p.y);
+
+      if (min_dist > distance) {
+        observations[i].id = predicted[j].id;
+        min_dist = distance;
+      }
     }
   }
-  exit(1);
 }
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
@@ -122,6 +136,34 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   // 3.33. Note that you'll need to switch the minus sign in that equation to a plus to account
   // for the fact that the map's y-axis actually points downwards.)
   // http://planning.cs.uiuc.edu/node99.html
+  weights.clear();
+
+  // prepare predicted landmarks
+  vector<LandmarkObs> predicted(map_landmarks.landmark_list.size());
+  for (unsigned i = 0; i < predicted.size(); i++) {
+    predicted[i].id = map_landmarks.landmark_list[i].id_i;
+    predicted[i].x = map_landmarks.landmark_list[i].x_f;
+    predicted[i].y = map_landmarks.landmark_list[i].y_f;
+  }
+
+  // iterate over each particle observations
+  vector<LandmarkObs> particle_observations(observations.size());
+  for (unsigned i = 0; i < num_particles; i++) {
+    Particle p = particles[i];
+
+    // transform observations from vehicles coordinate system to map
+    for (unsigned j = 0; j < observations.size(); j++) {
+      LandmarkObs o = observations[j];
+      particle_observations[j].id = o.id;
+      particle_observations[j].x = p.x + o.x * cos(p.theta) - o.y * sin(p.theta);
+      particle_observations[j].y = p.y + o.y * cos(p.theta) + o.x * sin(p.theta);
+    }
+
+    // associate landmarks and observations
+    dataAssociation(predicted, particle_observations);
+
+
+  }
 }
 
 void ParticleFilter::resample() {
