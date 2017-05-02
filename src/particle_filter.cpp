@@ -20,7 +20,6 @@ using std::vector;
 
 default_random_engine generator;
 
-#define DEF_WEIGHT 1.0
 
 void ParticleFilter::addGaussianNoise(Particle& p, double std[]) {
 
@@ -49,6 +48,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
   // Set the number of particles.
   num_particles = 500;
+  double initial_weight = 1./num_particles;
 
   particles.clear();
   weights.clear();
@@ -65,11 +65,11 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     p.theta = theta;
     addGaussianNoise(p, std);
 
-    p.weight = DEF_WEIGHT;
+    p.weight = initial_weight;
 
     // add particle to vector containing all particles
     particles.push_back(p);
-    weights.push_back(DEF_WEIGHT);
+    weights.push_back(initial_weight);
   }
 
   // Consult particle_filter.h for more information about this method (and others in this file).
@@ -162,7 +162,16 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     // associate landmarks and observations
     dataAssociation(predicted, particle_observations);
 
+  }
 
+  double sum = 0.0;
+  for(unsigned int i = 0; i < particles.size(); i++) {
+    sum += particles[i].weight;
+  }
+  for(unsigned int i = 0; i < particles.size(); i++) {
+    double weight = particles[i].weight / sum;
+    particles[i].weight = weight;
+    weights.push_back(weight);
   }
 }
 
