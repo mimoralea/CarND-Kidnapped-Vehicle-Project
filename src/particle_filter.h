@@ -97,12 +97,6 @@ public:
    */
   void write(std::string filename);
 
-  /*
-   * Adds the random Gaussian noise to a given particle
-   * @param p particle passed by reference
-   * @param std standard deviations of x, y, and theta
-   */
-  void addGaussianNoise(Particle& p, double std[]);
   /**
    * initialized Returns whether particle filter is initialized yet or not.
    */
